@@ -83,6 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    //check for permissions and start the camera
     private fun startPhotoActivity() {
         if (checkPermissions()) {
             val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
@@ -97,16 +98,16 @@ class MainActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             startActivityForResult(intent, MY_CAMERA_CODE)
         }
-
     }
 
+    //checking all required permissions
     private fun checkPermissions(): Boolean {
         return checkCameraPermission() &&
                 checkStoragePermission() &&
                 checkFineLocationPermission()
     }
 
-
+    //if photo is taken successfully make an editable copy of it and pass it to the viewModel for processing and editing
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == MY_CAMERA_CODE && resultCode == Activity.RESULT_OK) {
@@ -144,7 +145,6 @@ class MainActivity : AppCompatActivity() {
             false
         } else {
             true
-
         }
     }
 
@@ -176,13 +176,13 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 MY_FINE_LOCATION_PERMISSION_CODE
             )
-
             false
         } else {
             true
         }
     }
 
+    //if user chooses "don't ask again" instruct them to allow permissions through the settings page
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -193,11 +193,19 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.isEmpty()
                     || grantResults[0] != PackageManager.PERMISSION_GRANTED
                 ) {
-                    Toast.makeText(
-                        this,
-                        "The applications needs these permissions to work.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    if (!this.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                        Toast.makeText(
+                            this,
+                            "The application is missing core permissions, please allow them from settings page.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "The applications needs these permissions to work.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 } else {
                     checkStoragePermission()
                 }
@@ -207,11 +215,19 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.isEmpty()
                     || grantResults[0] != PackageManager.PERMISSION_GRANTED
                 ) {
-                    Toast.makeText(
-                        this,
-                        "The applications needs these permissions to work.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                        Toast.makeText(
+                            this,
+                            "The application is missing core permissions, please allow them from settings page.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "The applications needs these permissions to work.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 } else {
                     checkFineLocationPermission()
                 }
@@ -221,11 +237,19 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.isEmpty()
                     || grantResults[0] != PackageManager.PERMISSION_GRANTED
                 ) {
-                    Toast.makeText(
-                        this,
-                        "The applications needs these permissions to work.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    if (!this.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                        Toast.makeText(
+                            this,
+                            "The application is missing core permissions, please allow them from settings page.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "The applications needs these permissions to work.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         }
