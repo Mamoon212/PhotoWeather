@@ -80,7 +80,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-
     }
 
     //check for permissions and start the camera

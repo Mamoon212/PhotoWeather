@@ -17,6 +17,7 @@ import com.mamoon.app.photoweather.retrofit.Result
 import com.mamoon.app.photoweather.room.Post
 import com.mamoon.app.photoweather.room.PostDatabase
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -68,20 +69,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     var posts = dao.getAllPosts()
 
-
-    init {
-        uiScope.launch {
-            posts = getPosts()
-        }
-        fusedLocationClient
-    }
-
-    //fetches history from database
-    private suspend fun getPosts(): LiveData<List<Post>> {
-        return withContext(Dispatchers.IO) {
-            dao.getAllPosts()
-        }
-    }
+    private val channel = Channel<Location?>()
 
     fun fabClicked() {
         _startPhotoActivity.value = true
@@ -93,24 +81,32 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     //this function gets the location, the city name, the weather data, and the time, and the final image once done
     fun preparePhotoForDrawing(bitmap: Bitmap) {
-        uiScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-                    uiScope.launch {
-                        val cityName = getCityName(loc)
-                        cityName?.let { city ->
-                            val weather = fetchWeatherForCity(city)
-                            weather?.let { result ->
-                                val time = getTime()
-                                val finalString = writeFinalString(city, result, time)
+                getLoc()
+                val location = channel.receive()
+                location?.let {
+                    val cityName = getCityName(it)
+                    cityName?.let { city ->
+                        val weather = fetchWeatherForCity(city)
+                        weather?.let { result ->
+                            val time = getTime()
+                            val finalString = writeFinalString(city, result, time)
+                            withContext(Dispatchers.Main) {
                                 _photo.value =
                                     writeTextOnDrawable(getApplication(), bitmap, finalString)
                             }
+
                         }
                     }
-
                 }
-            } catch (e: IOException) {
+                if (location == null) {
+                    withContext(Dispatchers.Main) {
+                        _showApiErrorMessage.value =
+                            "Couldn't fetch location, enable GPS and try again."
+                    }
+                }
+            } catch (e: Exception) {
                 e.printStackTrace()
                 _showApiErrorMessage.value = e.localizedMessage
             }
@@ -118,6 +114,16 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         }
 
     }
+
+    private fun getLoc() {
+        fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+            uiScope.launch {
+                channel.send(loc)
+            }
+        }
+
+    }
+
 
     //uses the location to get the city name
     private suspend fun getCityName(location: Location): String? {
@@ -152,7 +158,8 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
                 result
             } catch (e: IOException) {
                 uiScope.launch {
-                    _showApiErrorMessage.value = "Problem fetching the weather data, check your connection."
+                    _showApiErrorMessage.value =
+                        "Problem fetching the weather data, check your connection."
                 }
                 null
             }
